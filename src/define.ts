@@ -48,6 +48,22 @@ type ResolvePartialOptional<Src, Arg, Ctx, Out> = {
   ) => PromiseOrValue<Out>;
 };
 
+interface ResolverWrapperUnknown<Ctx> {
+  <Src, Arg, Out>(
+    resolver: ResolvePartialMandatory<Src, Arg, Ctx, Out>['resolve']
+  ): ResolvePartialMandatory<Src, Arg, Ctx, Out>['resolve'];
+}
+
+interface ResolverWrapperKnown<Src, Ctx> {
+  <Arg, Out>(
+    resolver: ResolvePartialMandatory<Src, Arg, Ctx, Out>['resolve']
+  ): ResolvePartialMandatory<Src, Arg, Ctx, Out>['resolve'];
+}
+
+type ResolverWrapper<Src, Ctx> = unknown extends Src
+  ? ResolverWrapperUnknown<Ctx>
+  : ResolverWrapperKnown<Src, Ctx>;
+
 export type Factory<Ctx, TExtensionsMap extends ExtensionsMap> = {
   String: Scalar<string | null | undefined>;
   Int: Scalar<number | null | undefined>;
@@ -216,6 +232,10 @@ export type Factory<Ctx, TExtensionsMap extends ExtensionsMap> = {
       ...SubscriptionField<Ctx, Src, any, any>[]
     ];
   }): SubscriptionObject<Ctx, Src>;
+
+  wrapResolver<Src>(
+    wrapperFn: ResolverWrapper<Src, Ctx>
+  ): ResolverWrapper<Src, Ctx>;
 };
 
 function builtInScalar<Src>(
@@ -520,6 +540,10 @@ export function createTypesFactory<
         name,
         fields,
       };
+    },
+
+    wrapResolver(wrapperFn) {
+      return wrapperFn;
     },
   };
 }
